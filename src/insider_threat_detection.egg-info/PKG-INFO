@@ -1,0 +1,258 @@
+Metadata-Version: 2.4
+Name: insider-threat-detection
+Version: 0.1.0
+Summary: Course starter for real-time insider threat detection using network behavior profiling
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+
+# Real-Time Insider Threat Detection Using Network Behavior Profiling
+
+This repository is a starter implementation for a course project focused on detecting insider threats by modeling user network behavior over time and flagging deviations in real time.
+
+## Project Idea
+
+Insider threats are difficult to detect because the attacker is often a legitimate user. Instead of relying only on signatures or blacklists, this project builds a behavior profile for each user and raises alerts when activity becomes unusual.
+
+Examples of suspicious behavior include:
+
+- Logging in at unusual hours
+- Connecting to rarely used destinations
+- Sudden spikes in upload volume
+- Abnormal access frequency
+- New device or source IP changes
+
+## Starter Scope
+
+This starter version includes:
+
+- A clean Python project structure
+- Synthetic event generation for normal and suspicious traffic
+- Real-time per-user behavior profiling
+- A simple anomaly scoring engine
+- Alert generation for high-risk events
+- A Streamlit dashboard for alerts and graphs
+
+## Suggested Final Project Flow
+
+1. Collect or simulate network events
+2. Build per-user normal behavior profiles
+3. Extract real-time features from each event
+4. Score anomalies using behavioral deviation
+5. Raise alerts with reasons
+6. Evaluate precision, recall, and false positives
+
+## Repository Structure
+
+```text
+.
+|-- README.md
+|-- requirements.txt
+|-- docs/
+|   `-- project-plan.md
+|-- scripts/
+|   `-- generate_sample_data.py
+`-- src/
+    `-- insider_threat_detection/
+        |-- __init__.py
+        |-- config.py
+        |-- detector.py
+        |-- models.py
+        |-- pipeline.py
+        `-- simulator.py
+```
+
+## Quick Start
+
+1. Create a virtual environment
+2. Install requirements
+3. Generate sample data
+4. Run the pipeline
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python scripts/generate_sample_data.py
+python run_demo.py
+```
+
+## Dashboard
+
+Launch the Streamlit dashboard with:
+
+```powershell
+streamlit run dashboard.py
+```
+
+The dashboard shows:
+
+- Total processed events and alert rate
+- Severity overview with Low, Medium, High, and Critical alert levels
+- Alert timeline
+- Alert counts by user
+- Traffic volume over time
+- Average anomaly score by hour
+- Common alert reasons
+- Recent alerts and the full scored event stream
+- Downloadable CSV export for alerts and scored events
+
+For a live demo experience:
+
+- Turn on `Auto-refresh dashboard`
+- Turn on `Live simulation mode`
+- Choose a refresh interval and events-per-refresh batch size
+- Watch new events and alerts appear automatically
+
+## Current Detection Strategy
+
+The baseline detector uses lightweight behavior profiling:
+
+- Typical login hour range per user
+- Known source IPs
+- Known destination IPs
+- Average bytes sent and received
+- Event count growth
+
+It then scores an event higher when it contains multiple deviations from the user's normal profile.
+
+## Good Next Steps
+
+- Add role-based anomaly thresholds and severity levels
+- Train an unsupervised model such as Isolation Forest
+- Use sliding time windows for richer behavior profiles
+- Add role-based baselines across teams
+- Compare behavior before and after suspicious events
+- Export alerts to CSV or a database
+
+## Course Report Sections
+
+- Problem statement
+- Literature review
+- Dataset and feature design
+- Detection methodology
+- Experimental results
+- Limitations and future work
+
+This starter is designed to help you begin immediately, then improve the system step by step as your course project grows.
+
+## Web Application Version
+
+This copy now includes a FastAPI + React web application with an AI firewall
+advisor.
+
+### Backend
+
+```powershell
+python -m pip install -r requirements.txt
+python -m pip install -e .
+uvicorn backend.app:app --host 0.0.0.0 --port 8001 --reload
+```
+
+The API runs at:
+
+```text
+http://SERVER_IP:8001
+```
+
+Main endpoints:
+
+```text
+GET  /api/summary
+GET  /api/events
+GET  /api/alerts
+GET  /api/firewall/recommendations
+GET  /api/firewall/rules
+POST /api/firewall/approve
+POST /api/firewall/reject
+POST /api/firewall/unblock
+POST /api/collector/start
+POST /api/collector/stop
+POST /api/events
+```
+
+### Frontend
+
+Open a second terminal:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+The React dashboard runs at:
+
+```text
+http://127.0.0.1:5173
+```
+
+### Real Firewall + Test Site Demo
+
+Run the backend as Administrator/root because real firewall rules require
+elevated privileges.
+
+On the server PC, start the backend:
+
+```powershell
+uvicorn backend.app:app --host 0.0.0.0 --port 8001 --reload
+```
+
+Start the React dashboard:
+
+```powershell
+cd frontend
+npm run dev -- --host 0.0.0.0 --port 5173
+```
+
+Serve the local Test Site on the server PC:
+
+```powershell
+python scripts/serve_test_site.py --host 0.0.0.0 --port 8080
+```
+
+Client PCs should open:
+
+```text
+http://SERVER_IP:8080
+```
+
+Then run the client logger on each client PC:
+
+```powershell
+python scripts/client_logger.py --server-api http://SERVER_IP:8001/api/events --test-site-host SERVER_IP --test-site-port 8080 --client-id client1
+```
+
+For a controlled demo that generates traffic automatically:
+
+```powershell
+python scripts/client_logger.py --server-api http://SERVER_IP:8001/api/events --test-site-host SERVER_IP --test-site-port 8080 --client-id client1 --probe-test-site
+```
+
+When the AI Firewall Advisor recommendation is approved, the backend creates a
+real firewall rule on the server PC:
+
+- Windows: `New-NetFirewallRule` blocks inbound traffic from the client IP.
+- Linux: `ufw insert 1 deny` blocks traffic from the client IP.
+- If a port is known, only that Test Site port is blocked.
+- Expired rules are checked every 60 seconds and automatically unblocked.
+
+### Autoencoder anomaly model
+
+Train the neural anomaly detector after you have a baseline CSV with mostly
+normal traffic:
+
+```powershell
+python -m insider_threat_detection.train_firewall_nn --csv-path data\network_events.csv
+```
+
+The training script fits preprocessing on normal/low-risk events, uses Keras
+embedding layers for `user_id`, `source_ip`, and `destination_ip`, trains an
+autoencoder to reconstruct normal behavior features, and saves the 95th
+percentile reconstruction-error threshold in:
+
+```text
+models/firewall_preprocessor.pkl
+```
+
+At inference time, events whose reconstruction error exceeds that threshold are
+treated as anomalous. Larger errors escalate from `block` to `quarantine`.

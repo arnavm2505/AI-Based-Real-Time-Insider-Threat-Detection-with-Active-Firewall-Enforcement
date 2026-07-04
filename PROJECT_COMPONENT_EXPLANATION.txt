@@ -1,0 +1,997 @@
+REAL-TIME INSIDER THREAT DETECTION USING NETWORK BEHAVIOR PROFILING
+FULL PROJECT COMPONENT EXPLANATION
+
+========================================================================
+1. PROJECT PURPOSE
+========================================================================
+
+This project is a course-level cybersecurity prototype that demonstrates
+how insider threats can be detected by monitoring network behavior over
+time and identifying deviations from a user's normal activity.
+
+An insider threat is dangerous because the attacker may already be inside
+the organization and may already have valid login access. That makes
+traditional signature-based detection less effective. This project uses
+behavior profiling instead.
+
+The system works by:
+
+1. Reading network activity events
+2. Building a normal profile for each user
+3. Comparing new events against that profile
+4. Assigning an anomaly score
+5. Creating alerts when the score is high enough
+6. Showing results in a live Streamlit dashboard
+
+
+========================================================================
+2. HIGH-LEVEL ARCHITECTURE
+========================================================================
+
+The project has four main layers:
+
+1. Data generation layer
+   - Generates synthetic network events for users
+   - Can also append new events continuously for live demo mode
+
+2. Detection layer
+   - Builds and updates per-user behavior profiles
+   - Scores new events based on unusual behavior
+
+3. Analysis layer
+   - Converts raw scored events into alert records
+   - Adds severity levels such as Low, Medium, High, Critical
+
+4. Visualization layer
+   - Streamlit dashboard
+   - Displays metrics, charts, alerts, severity, and CSV downloads
+
+
+========================================================================
+3. PROJECT FOLDER STRUCTURE
+========================================================================
+
+Main files and folders:
+
+- README.md
+- PROJECT_COMPONENT_EXPLANATION.txt
+- requirements.txt
+- pyproject.toml
+- dashboard.py
+- run_demo.py
+- docs/
+- scripts/
+- src/
+- data/                 (generated at runtime, ignored in git)
+- .venv/                (local virtual environment, ignored in git)
+
+
+========================================================================
+4. ROOT-LEVEL FILES
+========================================================================
+
+4.1 README.md
+----------------
+
+Purpose:
+- Main overview of the project
+- Explains what the project does
+- Contains setup instructions
+- Describes dashboard features
+- Lists future enhancements
+
+How it helps:
+- Useful when showing the repo to teachers or teammates
+- Serves as the first documentation page
+
+
+4.2 requirements.txt
+--------------------
+
+Purpose:
+- Lists Python dependencies required by the project
+
+Packages used:
+- pandas
+  Used for tabular data handling in the dashboard
+- streamlit
+  Used to create the web dashboard UI
+- streamlit-autorefresh
+  Used to refresh the dashboard automatically for live mode
+
+
+4.3 pyproject.toml
+------------------
+
+Purpose:
+- Basic project metadata for Python packaging
+- Declares setuptools as the build backend
+
+Current role:
+- Not critical to running the project directly
+- Useful if the project is later packaged more formally
+
+
+4.4 .gitignore
+--------------
+
+Purpose:
+- Prevents unnecessary or machine-specific files from going to GitHub
+
+Ignored items:
+- .venv/
+  Local virtual environment
+- __pycache__/
+  Compiled Python cache
+- *.pyc
+  Compiled Python bytecode files
+- data/
+  Generated CSV data
+- .streamlit/
+  Local Streamlit settings if created later
+
+
+4.5 run_demo.py
+---------------
+
+Purpose:
+- Simple terminal-based entry point
+- Lets you run the detection pipeline without the dashboard
+
+What it does:
+1. Adds the src/ folder to Python's import path
+2. Imports main() from insider_threat_detection.pipeline
+3. Runs the backend pipeline
+
+When to use it:
+- To test that the detection backend is working
+- To demonstrate alerts in the terminal
+
+
+4.6 dashboard.py
+----------------
+
+Purpose:
+- Main Streamlit dashboard file
+- This is the front-end of the project
+
+What it provides:
+- Metrics
+- Charts
+- Severity overview
+- Alert tables
+- Download buttons
+- Auto-refresh
+- Live simulated event streaming
+
+This is the file used when running:
+
+streamlit run dashboard.py
+
+
+4.7 PROJECT_COMPONENT_EXPLANATION.txt
+-------------------------------------
+
+Purpose:
+- Explains every important component of the project
+- Useful for viva, report writing, and self-study
+
+
+========================================================================
+5. DOCUMENTATION FOLDER
+========================================================================
+
+5.1 docs/project-plan.md
+------------------------
+
+Purpose:
+- Academic planning document
+- Describes the project in a report-friendly style
+
+Sections included:
+- Title
+- Problem statement
+- Objectives
+- Proposed inputs
+- Core features
+- Methodology
+- Tools and technologies
+- Evaluation ideas
+- Extension ideas
+
+Why it matters:
+- Useful for course project proposal
+- Can be reused in your final report or presentation
+
+
+========================================================================
+6. SCRIPT FOLDER
+========================================================================
+
+6.1 scripts/generate_sample_data.py
+-----------------------------------
+
+Purpose:
+- Generates synthetic sample network data
+
+What it does:
+1. Ensures src/ can be imported
+2. Calls generate_sample_events_csv() from simulator.py
+3. Writes output to:
+   data/network_events.csv
+
+Why it matters:
+- The dashboard and pipeline need event data to work
+- This script is the easiest way to generate demo data
+
+Typical usage:
+- python scripts/generate_sample_data.py
+
+
+========================================================================
+7. SOURCE CODE PACKAGE
+========================================================================
+
+The main logic lives inside:
+
+src/insider_threat_detection/
+
+This folder contains the real application logic.
+
+
+========================================================================
+8. PACKAGE FILE: __init__.py
+========================================================================
+
+8.1 __init__.py
+---------------
+
+Purpose:
+- Marks the folder as a Python package
+
+Current behavior:
+- Contains only a short package docstring
+
+Why it exists:
+- Needed so Python treats insider_threat_detection as an importable module
+
+
+========================================================================
+9. CONFIGURATION MODULE
+========================================================================
+
+9.1 config.py
+-------------
+
+Purpose:
+- Stores scoring configuration values in one place
+
+Main class:
+- DetectionConfig
+
+DetectionConfig fields:
+
+- alert_threshold
+  Minimum score required to trigger an alert
+
+- unusual_hour_weight
+  Score added when activity occurs at an unusual time
+
+- new_source_ip_weight
+  Score added when a user appears from a new source IP
+
+- new_destination_weight
+  Score added when a user connects to a new destination IP
+
+- bytes_spike_weight
+  Score added when sent data is much higher than normal
+
+- frequency_spike_weight
+  Score added when a burst pattern is detected
+
+- warmup_events
+  Minimum history events needed before judging a user normally
+
+Why it matters:
+- This file makes tuning easier
+- Instead of rewriting detection logic, you can adjust these numbers
+
+
+========================================================================
+10. DATA MODEL MODULE
+========================================================================
+
+10.1 models.py
+--------------
+
+Purpose:
+- Defines the data structures used by the project
+
+Classes:
+
+1. NetworkEvent
+   Represents one network activity record
+
+   Fields:
+   - timestamp
+   - user_id
+   - source_ip
+   - destination_ip
+   - protocol
+   - action
+   - bytes_sent
+   - bytes_received
+
+   Why it matters:
+   - Standard format for a single event
+   - Used throughout the pipeline and detector
+
+2. UserProfile
+   Represents the learned normal behavior of one user
+
+   Fields:
+   - user_id
+   - event_count
+   - total_bytes_sent
+   - total_bytes_received
+   - hour_sum
+   - source_ips
+   - destination_ips
+   - recent_event_hours
+
+   Computed properties:
+   - average_bytes_sent
+   - average_bytes_received
+   - average_hour
+
+   Why it matters:
+   - Stores what "normal" looks like for each user
+   - Used to compare new activity against past behavior
+
+3. DetectionResult
+   Represents the output of scoring one event
+
+   Fields:
+   - score
+   - alert
+   - reasons
+
+   Why it matters:
+   - Keeps detection output structured and explainable
+
+
+========================================================================
+11. DETECTION ENGINE
+========================================================================
+
+11.1 detector.py
+----------------
+
+Purpose:
+- Contains the logic that judges whether a network event is suspicious
+
+Main class:
+- BehaviorProfiler
+
+BehaviorProfiler.__init__()
+---------------------------
+
+Purpose:
+- Loads configuration
+
+Behavior:
+- Uses the provided DetectionConfig
+- If no config is provided, it uses default values
+
+
+BehaviorProfiler.score_event(event, profile)
+--------------------------------------------
+
+Purpose:
+- Assigns an anomaly score to one event based on user history
+
+Inputs:
+- event: current NetworkEvent
+- profile: current UserProfile for that user
+
+Logic:
+
+Step 1:
+- Start with score = 0
+- Create an empty list of reasons
+
+Step 2:
+- Only score behavior if the user has enough past history
+- This is controlled by warmup_events
+
+Step 3:
+- Check unusual hour
+  If the current event hour is far from the user's average hour,
+  add unusual_hour_weight and record reason
+
+Step 4:
+- Check new source IP
+  If the user appears from a source IP not seen before,
+  add new_source_ip_weight and record reason
+
+Step 5:
+- Check new destination IP
+  If the destination IP is new for that user,
+  add new_destination_weight and record reason
+
+Step 6:
+- Check bytes sent spike
+  If bytes sent are more than 3 times average,
+  add bytes_spike_weight and record reason
+
+Step 7:
+- Check burst activity
+  If recent hours show repeated short-window activity,
+  add frequency_spike_weight and record reason
+
+Step 8:
+- Return DetectionResult
+  - rounded score
+  - alert = True if score >= alert_threshold
+  - collected reasons
+
+Why it matters:
+- This is the heart of anomaly detection
+- It turns behavior differences into a measurable risk score
+
+
+BehaviorProfiler.update_profile(event, profile)
+-----------------------------------------------
+
+Purpose:
+- Updates a user's normal behavior profile after scoring an event
+
+What it updates:
+- event count
+- total bytes sent
+- total bytes received
+- sum of event hours
+- known source IPs
+- known destination IPs
+- recent event hour list
+
+Extra behavior:
+- Keeps only the most recent 20 event hours
+
+Why it matters:
+- The system learns continuously from the event stream
+- Without this, the profile would never evolve
+
+
+========================================================================
+12. PIPELINE MODULE
+========================================================================
+
+12.1 pipeline.py
+----------------
+
+Purpose:
+- Connects CSV input, detection logic, severity labeling, and output
+
+Functions in this file:
+
+
+classify_severity(score)
+------------------------
+
+Purpose:
+- Converts numeric anomaly scores into human-readable severity
+
+Current rules:
+- score >= 4.0     -> Critical
+- score >= 3.0     -> High
+- score >= 2.5     -> Medium
+- score > 0        -> Low
+- otherwise        -> Normal
+
+Why it matters:
+- Makes alerts easier to interpret
+- Helps the dashboard show threat levels clearly
+
+
+parse_event(row)
+----------------
+
+Purpose:
+- Converts a CSV row dictionary into a NetworkEvent object
+
+Why it matters:
+- Makes raw CSV rows usable by the rest of the code
+
+
+load_events(csv_path)
+---------------------
+
+Purpose:
+- Reads the CSV file and parses all rows into NetworkEvent objects
+
+Output:
+- A list of NetworkEvent objects
+
+
+analyze_events(csv_path)
+------------------------
+
+Purpose:
+- Main analysis function used by the dashboard
+
+This function does the following:
+
+1. Creates a BehaviorProfiler
+2. Creates a dictionary of UserProfile objects
+3. Loads all events from the CSV
+4. For each event:
+   - gets the correct user profile
+   - scores the event
+   - assigns severity
+   - creates a scored event record
+   - if alert = True, also creates an alert record
+   - updates the user profile
+
+Outputs:
+- scored_events
+  Full stream of all events with score, severity, reasons, and alert flag
+
+- alerts
+  Only high-enough events that crossed the alert threshold
+
+Why it matters:
+- This is the main backend function used by the dashboard
+
+
+run_pipeline(csv_path)
+----------------------
+
+Purpose:
+- Lightweight wrapper used by terminal mode
+
+Behavior:
+- Calls analyze_events()
+- Returns only the alert list
+
+
+main()
+------
+
+Purpose:
+- Terminal-based program entry point
+
+Behavior:
+1. Looks for data/network_events.csv
+2. If missing, raises a helpful error
+3. Runs the pipeline
+4. Prints number of alerts
+5. Prints first 15 alerts
+
+Why it matters:
+- Lets the backend be tested without Streamlit
+
+
+========================================================================
+13. SIMULATION MODULE
+========================================================================
+
+13.1 simulator.py
+-----------------
+
+Purpose:
+- Generates synthetic network traffic for normal and suspicious behavior
+- Supports both initial data creation and live appending
+
+This file is critical because the project currently does not use a real
+enterprise dataset. It creates realistic-enough demo data instead.
+
+
+FIELDNAMES
+----------
+
+Purpose:
+- Defines the CSV column order used when writing files
+
+Fields:
+- timestamp
+- user_id
+- source_ip
+- destination_ip
+- protocol
+- action
+- bytes_sent
+- bytes_received
+
+
+_build_user_context(user_count)
+-------------------------------
+
+Purpose:
+- Creates behavior patterns for synthetic users
+
+Each user gets:
+- a user ID
+- a preferred activity hour
+- a set of normal destination IPs
+- a normal source IP
+
+Why it matters:
+- Gives each user a baseline behavior profile
+- Makes suspicious activity more meaningful
+
+
+_read_existing_rows(csv_path)
+-----------------------------
+
+Purpose:
+- Reads existing CSV rows if the data file already exists
+
+Why it matters:
+- Needed when appending live events
+
+
+_write_rows(output_path, rows)
+------------------------------
+
+Purpose:
+- Writes a complete CSV file from scratch
+
+Used by:
+- generate_sample_events_csv()
+
+
+_append_rows(output_path, rows)
+-------------------------------
+
+Purpose:
+- Appends new rows to an existing CSV
+
+Used by:
+- append_live_events_csv()
+
+
+generate_sample_events_csv(output_path, user_count, events_per_user, seed)
+---------------------------------------------------------------------------
+
+Purpose:
+- Generates the initial synthetic dataset
+
+How it works:
+
+1. Sets the random seed for repeatability
+2. Creates synthetic users and behavior contexts
+3. Creates timestamps over a realistic time span
+4. Generates mostly normal events
+5. Makes the final user produce suspicious events near the end
+6. Sorts rows by timestamp
+7. Writes them to CSV
+
+Suspicious behavior generated:
+- new source IP range
+- more varied destination IPs
+- higher byte volume
+
+Why it matters:
+- Creates the base dataset for first-time testing
+
+
+append_live_events_csv(output_path, user_count, events_to_add, seed)
+--------------------------------------------------------------------
+
+Purpose:
+- Appends fresh events to the current CSV for live dashboard mode
+
+How it works:
+
+1. Reads the existing CSV
+2. Finds the latest timestamp
+3. Builds new future events after that time
+4. Reuses user contexts
+5. Randomly makes the risky user produce suspicious events sometimes
+6. Appends the new rows
+
+Why it matters:
+- Makes the dashboard feel real-time
+- Lets charts and alerts update continuously
+
+
+========================================================================
+14. DASHBOARD MODULE
+========================================================================
+
+14.1 dashboard.py
+-----------------
+
+Purpose:
+- Builds the web dashboard with Streamlit
+
+This is the most visible part of the project during a demo or presentation.
+
+
+PROJECT_ROOT and SRC_PATH
+-------------------------
+
+Purpose:
+- Resolve project directory paths
+- Ensure src/ can be imported when running the dashboard directly
+
+
+DATA_PATH
+---------
+
+Purpose:
+- Points to the main event data file:
+  data/network_events.csv
+
+
+load_dashboard_data(csv_path)
+-----------------------------
+
+Purpose:
+- Loads analyzed event data into pandas DataFrames
+
+Behavior:
+1. Calls analyze_events() from pipeline.py
+2. Creates events_df and alerts_df
+3. Converts timestamp columns into pandas datetime format
+4. Adds hour column for grouped charts
+
+Why it matters:
+- Converts backend outputs into chart-ready and table-ready data
+
+
+severity_badge_html(severity)
+-----------------------------
+
+Purpose:
+- Returns colored HTML badge markup for each severity label
+
+Colors used:
+- Critical -> dark red
+- High     -> orange
+- Medium   -> yellow
+- Low      -> blue
+- Normal   -> green
+
+Why it matters:
+- Improves visual understanding in the dashboard
+
+
+ensure_sample_data()
+--------------------
+
+Purpose:
+- Creates sample CSV data automatically if it does not exist
+
+Why it matters:
+- Prevents dashboard failure when run for the first time
+
+
+build_sidebar(events_df)
+------------------------
+
+Purpose:
+- Creates interactive dashboard controls
+
+Controls included:
+- user filter
+- recent alerts count
+- auto-refresh toggle
+- refresh interval
+- live simulation toggle
+- events per refresh
+- append live event batch button
+- regenerate sample data button
+
+Why it matters:
+- Makes the dashboard interactive
+- Lets users control the live behavior
+
+
+maybe_stream_new_events(auto_refresh, live_simulation, events_per_refresh)
+---------------------------------------------------------------------------
+
+Purpose:
+- Handles automatic refresh logic and live data appending
+
+Behavior:
+- If auto-refresh is off, do nothing
+- If auto-refresh is on, call st_autorefresh()
+- If live simulation is also on:
+  - append a fresh batch of new events
+  - clear cached data
+
+Why it matters:
+- Enables near-real-time dashboard behavior
+
+
+main()
+------
+
+Purpose:
+- Main Streamlit application function
+
+Detailed flow:
+
+1. Set Streamlit page configuration
+2. Ensure data exists
+3. Load dashboard data
+4. Build sidebar controls
+5. Save refresh settings into session state
+6. Trigger auto-refresh/live simulation logic
+7. Reload data after new events may have been appended
+8. Show dashboard title and caption
+9. If auto-refresh is active, show a status message
+10. Filter events by selected user if needed
+11. Compute summary metrics
+12. Display:
+    - Events processed
+    - Alerts raised
+    - Alert rate
+    - Average score and critical count
+13. Show alert timeline line chart
+14. Show alert counts by user bar chart
+15. Show severity overview with badges and counts
+16. Show traffic volume area chart
+17. Show average score by hour bar chart
+18. Show common alert reasons bar chart
+19. Show recent alerts table
+20. Show download button for alerts CSV
+21. Show scored event stream table
+22. Show download button for scored events CSV
+
+Why it matters:
+- This is the complete front-end view of the project
+
+
+========================================================================
+15. DATA FLOW THROUGH THE WHOLE SYSTEM
+========================================================================
+
+End-to-end flow:
+
+1. User runs generate_sample_data.py
+2. simulator.py creates data/network_events.csv
+3. User runs dashboard.py or run_demo.py
+4. pipeline.py loads CSV rows
+5. Each row is converted into NetworkEvent
+6. detector.py scores the event using the user's profile
+7. detector.py updates the user's profile
+8. pipeline.py assigns severity and builds alerts
+9. dashboard.py converts the output into DataFrames
+10. Streamlit renders charts, tables, severity, and downloads
+
+
+========================================================================
+16. WHAT EACH METRIC OR CHART MEANS
+========================================================================
+
+Events processed
+----------------
+- Total number of analyzed events after filtering
+
+Alerts raised
+-------------
+- Total number of events that crossed the alert threshold
+
+Alert rate
+----------
+- Percentage of filtered events that became alerts
+
+Average score / Critical
+------------------------
+- Mean anomaly score of the filtered events
+- Also shows how many critical alerts exist
+
+Alert timeline
+--------------
+- Number of alerts over time
+
+Alert counts by user
+--------------------
+- Which users generated the most alerts
+
+Severity overview
+-----------------
+- Number of alerts by severity level
+
+Traffic volume over time
+------------------------
+- Total bytes sent and received over time
+
+Average score by hour
+---------------------
+- How suspicious activity looks by hour of day
+
+Most common alert reasons
+-------------------------
+- Which suspicious patterns occur most often
+
+Recent alerts
+-------------
+- Latest alert records with timestamp, user, score, severity, reason
+
+Scored event stream
+-------------------
+- Full event table including normal and suspicious events
+
+
+========================================================================
+17. WHY THIS PROJECT IS GOOD FOR A COURSE
+========================================================================
+
+This project is strong for a course because it includes:
+
+- a clear cybersecurity problem
+- a practical detection concept
+- behavior-based anomaly detection
+- interpretable scoring
+- severity categorization
+- synthetic dataset generation
+- a visual dashboard
+- live simulation mode
+- downloadable outputs
+
+This makes it easier to explain in:
+- project demos
+- viva voce
+- written reports
+- presentations
+
+
+========================================================================
+18. CURRENT LIMITATIONS
+========================================================================
+
+This project is still a prototype and has some limitations:
+
+- Uses synthetic data, not real enterprise logs
+- Uses rule-based scoring, not machine learning
+- Does not yet include authentication or multi-user app security
+- Does not store alerts in a database
+- Does not integrate with SIEM tools
+- Does not yet classify by employee role or department
+- High and Critical alerts may be less frequent unless thresholds are tuned
+
+
+========================================================================
+19. SUGGESTED FUTURE IMPROVEMENTS
+========================================================================
+
+Good next enhancements:
+
+- Add role-based thresholds
+- Add ML models such as Isolation Forest
+- Add login event types and file transfer event types
+- Store alerts in SQLite or PostgreSQL
+- Add downloadable PDF report summary
+- Add screenshot-friendly dashboard styling
+- Add department-wise user grouping
+- Add real public cybersecurity datasets for comparison
+- Add precision/recall style evaluation metrics
+
+
+========================================================================
+20. SIMPLE SUMMARY
+========================================================================
+
+In simple terms:
+
+- simulator.py creates fake network activity
+- detector.py decides whether an event is suspicious
+- pipeline.py organizes scores, alerts, and severity
+- dashboard.py shows everything in graphs and tables
+- run_demo.py runs the backend in the terminal
+- generate_sample_data.py creates the input data
+- README.md and docs/project-plan.md explain the project
+
+This means the project is already a complete working prototype:
+
+- It has data
+- It has detection logic
+- It has severity levels
+- It has a live dashboard
+- It can export results
+- It is already published to GitHub
+

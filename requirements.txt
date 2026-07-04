@@ -1,0 +1,9 @@
+pandas
+streamlit
+streamlit-autorefresh
+fastapi
+uvicorn
+pydantic
+scikit-learn
+tensorflow
+psutil

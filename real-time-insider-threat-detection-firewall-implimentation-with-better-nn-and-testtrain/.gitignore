@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+*.log
+data/
+.streamlit/
+models/
+frontend/node_modules/
+frontend/dist/

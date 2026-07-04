@@ -1,0 +1,15 @@
+README.md
+pyproject.toml
+src/insider_threat_detection/__init__.py
+src/insider_threat_detection/ai_firewall_advisor.py
+src/insider_threat_detection/config.py
+src/insider_threat_detection/detector.py
+src/insider_threat_detection/firewall.py
+src/insider_threat_detection/models.py
+src/insider_threat_detection/pipeline.py
+src/insider_threat_detection/simulator.py
+src/insider_threat_detection/train_firewall_nn.py
+src/insider_threat_detection.egg-info/PKG-INFO
+src/insider_threat_detection.egg-info/SOURCES.txt
+src/insider_threat_detection.egg-info/dependency_links.txt
+src/insider_threat_detection.egg-info/top_level.txt
